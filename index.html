@@ -1,73 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-  <meta charset="utf-8">
-  <title>🌍 AR Cellular Respiration - ควบคุมด้วยท่าทาง</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>AR Cellular Respiration - ควบคุมด้วยท่าทางมือ</title>
   
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; background: radial-gradient(circle, #0a0a2a, #000000); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    #webcam { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -2; transform: scaleX(-1); filter: brightness(0.4) saturate(1.2); }
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a1a; }
+    #webcam { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -1; transform: scaleX(-1); filter: brightness(0.3) saturate(1.2); }
     #aframe-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
     
-    /* UI หัวข้อและคำแนะนำ - ระดับโลก */
     #ui-container { 
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
-      width: 95%; max-width: 750px; z-index: 10; text-align: center; pointer-events: none;
-      background: rgba(10, 10, 30, 0.65);
-      backdrop-filter: blur(10px);
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%); 
+      width: 92%; max-width: 800px; z-index: 10; text-align: center; pointer-events: none;
+      background: rgba(10, 10, 30, 0.75);
+      backdrop-filter: blur(12px);
       border-radius: 25px;
-      border: 1px solid rgba(0, 255, 200, 0.3);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 255, 200, 0.1);
-      padding: 8px 20px 15px 20px;
+      border: 1px solid rgba(0, 255, 200, 0.25);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 60px rgba(0, 255, 200, 0.08);
+      padding: 6px 20px 12px 20px;
     }
-    #stage-title { 
-      color: #00FFD0; font-size: 28px; font-weight: 800; 
-      text-shadow: 0 0 20px #00FFD0, 0 0 40px #00AA88;
-      letter-spacing: 2px;
-      margin-top: 5px;
+    #stage-title { color: #00FFD0; font-size: 26px; font-weight: 800; text-shadow: 0 0 20px #00FFD0, 0 0 40px #00AA88; letter-spacing: 2px; margin-top: 3px; }
+    #instruction { color: #f0f0ff; font-size: 18px; padding: 8px 10px; transition: all 0.4s ease; background: rgba(0, 0, 0, 0.2); border-radius: 40px; text-shadow: 0 0 15px rgba(0,200,255,0.2); font-weight: 500; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    #instruction b { color: #FFD700; background: rgba(255,215,0,0.12); padding: 2px 12px; border-radius: 30px; }
+
+    #summary-panel {
+      position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+      z-index: 10; 
+      background: rgba(0, 0, 20, 0.8);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 20px 18px;
+      min-width: 120px;
+      border: 1px solid rgba(0, 255, 200, 0.2);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
     }
-    #instruction { 
-      color: #f0f0ff; font-size: 20px; padding: 10px 5px; 
-      transition: all 0.4s ease;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 40px;
-      text-shadow: 0 0 15px rgba(0,200,255,0.3);
-      font-weight: 500;
-      min-height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-    #instruction b { color: #FFD700; background: rgba(255,215,0,0.15); padding: 2px 12px; border-radius: 30px; }
-    
-    /* ปุ่มเลื่อนขั้นตอนแบบ Hand Gesture (ใช้มือปัด) */
-    #gesture-hint {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px dashed rgba(255,255,255,0.3);
-      border-radius: 40px;
-      padding: 5px 18px;
-      margin-left: 10px;
-      font-size: 16px;
-      color: #88ddff;
-      letter-spacing: 1px;
-      animation: pulse-glow 2s infinite;
-    }
-    @keyframes pulse-glow {
-      0% { box-shadow: 0 0 5px rgba(0,255,200,0.1); }
-      50% { box-shadow: 0 0 25px rgba(0,255,200,0.3); }
-      100% { box-shadow: 0 0 5px rgba(0,255,200,0.1); }
-    }
-    
+    #summary-panel h3 { color: #00FFD0; font-size: 14px; margin: 0 0 12px 0; text-align: center; letter-spacing: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+    .summary-item { display: flex; justify-content: space-between; color: #ccddff; font-size: 15px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .summary-item .label { font-weight: 300; }
+    .summary-item .value { font-weight: 700; color: #FFD700; }
+    .summary-item .value.atp { color: #F1C40F; }
+    .summary-item .value.nadh { color: #9B59B6; }
+    .summary-item .value.co2 { color: #7F8C8D; }
+    .summary-item .value.h2o { color: #3498DB; }
+
     #loading { 
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
       color: #ccffdd; font-size: 28px; z-index: 20; 
-      background: rgba(0, 0, 0, 0.8); padding: 30px 50px; border-radius: 60px; 
+      background: rgba(0, 0, 0, 0.85); padding: 30px 50px; border-radius: 60px; 
       border: 2px solid #00ffaa;
       box-shadow: 0 0 80px #00ffaa44;
       backdrop-filter: blur(5px);
@@ -77,46 +62,108 @@
     }
     #loading span { display: block; font-size: 16px; color: #88ddff; margin-top: 8px; }
     
-    /* แถบสถานะขั้นตอน */
     #progress-bar {
       position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
       z-index: 10; display: flex; gap: 12px; 
       background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 50px;
       backdrop-filter: blur(5px);
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    .dot { 
-      width: 14px; height: 14px; border-radius: 50%; 
-      background: #445566; transition: 0.3s; 
-      border: 1px solid #667788;
-    }
+    .dot { width: 14px; height: 14px; border-radius: 50%; background: #445566; transition: 0.3s; border: 1px solid #667788; }
     .dot.active { background: #00FFD0; box-shadow: 0 0 20px #00FFD0; border-color: #00FFD0; }
     .dot.done { background: #2ECC71; border-color: #2ECC71; }
+
+    #event-description {
+      position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 12px 30px;
+      border-radius: 40px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+      border: 1px solid rgba(0, 255, 200, 0.3);
+      box-shadow: 0 0 60px rgba(0, 255, 200, 0.1);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+      text-align: center;
+      max-width: 80%;
+    }
+    #event-description.show { opacity: 1; }
+
+    #controls-hint {
+      position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
+      z-index: 15;
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      background: rgba(0,0,0,0.4);
+      padding: 6px 20px;
+      border-radius: 40px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.05);
+      pointer-events: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #controls-hint i { font-style: normal; color: #00FFD0; }
+
+    /* ตัวบ่งชี้ท่าทางมือ */
+    #gesture-indicator {
+      position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+      z-index: 15;
+      color: #00FFD0;
+      font-size: 28px;
+      font-weight: 700;
+      text-shadow: 0 0 30px #00FFD0, 0 0 60px #00AA88;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 25px;
+      border-radius: 40px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(0,255,200,0.1);
+    }
+    #gesture-indicator.show { opacity: 1; }
+    #gesture-indicator.next { color: #00FFD0; border-color: #00FFD0; }
+    #gesture-indicator.prev { color: #FF6B6B; border-color: #FF6B6B; }
   </style>
 </head>
 
 <body>
-  <!-- เสียงเอฟเฟกต์ระดับโลก -->
+  <!-- เสียง -->
   <audio id="snd-suck" src="https://actions.google.com/sounds/v1/science_fiction/sci_fi_hover_craft_pass_by.ogg" preload="auto"></audio>
   <audio id="snd-boom" src="https://actions.google.com/sounds/v1/science_fiction/force_field_explosion.ogg" preload="auto"></audio>
   <audio id="snd-success" src="https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" preload="auto"></audio>
   <audio id="snd-ambient" src="https://actions.google.com/sounds/v1/ambient/underwater_ambience.ogg" preload="auto" loop></audio>
   <audio id="snd-swipe" src="https://actions.google.com/sounds/v1/interface/ui_swipe.ogg" preload="auto"></audio>
 
-  <div id="loading">
-    🌟 กำลังเปิดมิติวิทยาศาสตร์<br>
-    <span>ตรวจจับมือทั้ง 2 ข้างเพื่อเริ่มเรียน</span>
-  </div>
+  <div id="loading">🌟 กำลังเปิด AR<br><span>ตรวจจับมือเพื่อเริ่มเรียน</span></div>
   
   <div id="ui-container">
     <div id="stage-title">⚡ กระบวนการหายใจระดับเซลล์</div>
-    <div id="instruction">
-      🙌 ยกมือขึ้น แล้วจับวัตถุให้ชนกัน
-      <span id="gesture-hint">👋 ปัดมือซ้าย-ขวาเพื่อเลื่อนด่าน</span>
+    <div id="instruction">🙌 หยิบโมเลกุลแล้วลากให้ชนกัน</div>
+  </div>
+
+  <div id="summary-panel">
+    <h3>📊 สรุปสาร</h3>
+    <div class="summary-item"><span class="label">ATP</span><span class="value atp" id="sum-atp">0</span></div>
+    <div class="summary-item"><span class="label">NADH</span><span class="value nadh" id="sum-nadh">0</span></div>
+    <div class="summary-item"><span class="label">FADH₂</span><span class="value nadh" id="sum-fadh2">0</span></div>
+    <div class="summary-item"><span class="label">CO₂</span><span class="value co2" id="sum-co2">0</span></div>
+    <div class="summary-item"><span class="label">H₂O</span><span class="value h2o" id="sum-h2o">0</span></div>
+    <div class="summary-item" style="border-top:1px solid rgba(255,255,255,0.15); margin-top:6px; padding-top:8px;">
+      <span class="label">⚡ พลังงานรวม</span>
+      <span class="value atp" id="sum-total-atp" style="font-size:18px;">0</span>
     </div>
   </div>
 
-  <!-- แถบแสดงสถานะ -->
+  <div id="event-description"></div>
+  <div id="gesture-indicator">👋</div>
+  <div id="controls-hint"><i>👆 หยิบโมเลกุล</i> · ลากให้ชนกัน · <i>🔄 ปัดมือขวา/ซ้าย</i> เพื่อเปลี่ยนด่าน</div>
+
   <div id="progress-bar"></div>
 
   <video id="webcam" autoplay playsinline></video>
@@ -124,27 +171,36 @@
   <a-scene id="aframe-canvas" renderer="alpha: true" vr-mode-ui="enabled: false">
     <a-entity camera position="0 0 5"></a-entity>
 
-    <!-- จุดแสดงนิ้วมือ -->
     <a-sphere id="hand1-index" radius="0.12" color="#FF3377" material="emissive: #FF3377; emissiveIntensity: 2; transparent: true; opacity: 0.9"></a-sphere>
     <a-sphere id="hand1-thumb" radius="0.12" color="#FF3377" material="emissive: #FF3377; emissiveIntensity: 2; transparent: true; opacity: 0.9"></a-sphere>
     <a-sphere id="hand2-index" radius="0.12" color="#00FFCC" material="emissive: #00FFCC; emissiveIntensity: 2; transparent: true; opacity: 0.9"></a-sphere>
     <a-sphere id="hand2-thumb" radius="0.12" color="#00FFCC" material="emissive: #00FFCC; emissiveIntensity: 2; transparent: true; opacity: 0.9"></a-sphere>
     
-    <!-- วงแหวนรอบมือ -->
     <a-ring id="ring1" radius-inner="0.25" radius-outer="0.35" color="#FF3377" material="emissive: #FF3377; transparent: true; opacity: 0.3; side: double" position="0 0 -3"></a-ring>
     <a-ring id="ring2" radius-inner="0.25" radius-outer="0.35" color="#00FFCC" material="emissive: #00FFCC; transparent: true; opacity: 0.3; side: double" position="0 0 -3"></a-ring>
 
-    <!-- เอฟเฟกต์ระเบิด -->
     <a-entity id="explosion-group" position="0 0 -3" visible="false">
-      <a-sphere id="boom-core" radius="0.2" color="#FFFFFF" material="emissive: #FFFFFF; emissiveIntensity: 5; shader: flat"></a-sphere>
-      <a-ring id="boom-shockwave1" radius-inner="0.2" radius-outer="0.4" color="#F1C40F" material="emissive: #F1C40F; side: double; transparent: true"></a-ring>
-      <a-ring id="boom-shockwave2" radius-inner="0.2" radius-outer="0.5" color="#3498DB" material="emissive: #3498DB; side: double; transparent: true" rotation="90 0 0"></a-ring>
-      <a-ring id="boom-shockwave3" radius-inner="0.2" radius-outer="0.6" color="#9B59B6" material="emissive: #9B59B6; side: double; transparent: true" rotation="45 45 0"></a-ring>
+      <a-sphere id="boom-core" radius="0.3" color="#FFFFFF" material="emissive: #FFFFFF; emissiveIntensity: 8; shader: flat"></a-sphere>
+      <a-ring id="boom-shockwave1" radius-inner="0.3" radius-outer="0.5" color="#F1C40F" material="emissive: #F1C40F; side: double; transparent: true"></a-ring>
+      <a-ring id="boom-shockwave2" radius-inner="0.3" radius-outer="0.6" color="#3498DB" material="emissive: #3498DB; side: double; transparent: true" rotation="90 0 0"></a-ring>
+      <a-ring id="boom-shockwave3" radius-inner="0.3" radius-outer="0.7" color="#9B59B6" material="emissive: #9B59B6; side: double; transparent: true" rotation="45 45 0"></a-ring>
+      <a-ring id="boom-shockwave4" radius-inner="0.3" radius-outer="0.8" color="#E74C3C" material="emissive: #E74C3C; side: double; transparent: true" rotation="-45 45 0"></a-ring>
+    </a-entity>
+
+    <a-entity id="etc-animation" position="0 0 -3" visible="false">
+      <a-entity id="etc-chain">
+        <a-box id="etc-box1" position="-2.5 0 0" width="0.8" height="0.4" depth="0.4" color="#3498DB" material="emissive: #3498DB; emissiveIntensity: 0.3"></a-box>
+        <a-box id="etc-box2" position="-1.5 0 0" width="0.8" height="0.4" depth="0.4" color="#2ECC71" material="emissive: #2ECC71; emissiveIntensity: 0.3"></a-box>
+        <a-box id="etc-box3" position="-0.5 0 0" width="0.8" height="0.4" depth="0.4" color="#F1C40F" material="emissive: #F1C40F; emissiveIntensity: 0.3"></a-box>
+        <a-box id="etc-box4" position="0.5 0 0" width="0.8" height="0.4" depth="0.4" color="#E74C3C" material="emissive: #E74C3C; emissiveIntensity: 0.3"></a-box>
+        <a-box id="etc-box5" position="1.5 0 0" width="0.8" height="0.4" depth="0.4" color="#9B59B6" material="emissive: #9B59B6; emissiveIntensity: 0.3"></a-box>
+        <a-sphere id="etc-electron" position="-2.5 0.8 0" radius="0.15" color="#FFD700" material="emissive: #FFD700; emissiveIntensity: 2"></a-sphere>
+      </a-entity>
+      <a-text value="⚡ ระบบถ่ายทอดอิเล็กตรอน (ETC)" position="0 2 0" align="center" color="#00FFD0" scale="1.5 1.5 1.5"></a-text>
     </a-entity>
 
     <a-entity id="objects-container"></a-entity>
 
-    <!-- ระบบแสง -->
     <a-light type="ambient" color="#446688" intensity="0.3"></a-light>
     <a-light type="point" color="#00ffcc" intensity="0.8" position="2 3 4"></a-light>
     <a-light type="point" color="#ff66aa" intensity="0.6" position="-3 1 5"></a-light>
@@ -152,63 +208,71 @@
 
   <script>
     // --------------------------------------------------------------
-    // ฐานข้อมูลเนื้อหา
+    // ข้อมูลด่าน
     // --------------------------------------------------------------
     const stagesData = [
       {
         title: "🌱 1. ไกลโคไลซิส (Glycolysis)",
-        desc: "ลาก <b>Glucose</b> กับ <b>2 ATP</b> (ลงทุน) มาชนกัน!",
+        desc: "ลาก <b>Glucose</b> กับ <b>2 ATP</b> มาชนกัน!",
+        reactionDesc: "💥 C₆H₁₂O₆ + 2 ATP + 2 NAD⁺ → 2 Pyruvate + 4 ATP + 2 NADH",
         reactants: [
           { id: 'r1', type: 'box', text: "🍬 Glucose", color: "#2ECC71", pos: "-2.8 0.5 -3" },
           { id: 'r2', type: 'cylinder', text: "🔋 2 ATP", color: "#F1C40F", pos: "2.8 0.5 -3" }
         ],
         products: [
-          { id: 'p1', type: 'sphere', text: "🔥 2 Pyruvate", color: "#E67E22", pos: "-2.0 0.2 -3" },
+          { id: 'p1', type: 'sphere', text: "🔥 Pyruvate", color: "#E67E22", pos: "-2.0 0.2 -3" },
           { id: 'p2', type: 'cylinder', text: "⚡ 4 ATP", color: "#F1C40F", pos: "0 1.8 -3" },
           { id: 'p3', type: 'box', text: "🧬 2 NADH", color: "#9B59B6", pos: "2.0 0.2 -3" }
         ],
-        successMsg: "✨ แตกกลูโคส! ได้พลังงานและ NADH"
+        summary: { atp: 4, nadh: 2, fadh2: 0, co2: 0, h2o: 0 },
+        productDesc: "✅ ได้ 4 ATP (กำไร 2) และ 2 NADH"
       },
       {
         title: "🔥 2. การสร้าง Acetyl-CoA",
-        desc: "นำ <b>2 Pyruvate</b> ชนกับ <b>Coenzyme A</b>",
+        desc: "นำ <b>Pyruvate</b> ชนกับ <b>CoA</b>",
+        reactionDesc: "🔥 Pyruvate + CoA + NAD⁺ → Acetyl-CoA + CO₂ + NADH",
         reactants: [
-          { id: 'r1', type: 'sphere', text: "🔥 2 Pyruvate", color: "#E67E22", pos: "-2.8 0.5 -3" },
-          { id: 'r2', type: 'box', text: "🧪 2 CoA", color: "#95A5A6", pos: "2.8 0.5 -3" }
+          { id: 'r1', type: 'sphere', text: "🔥 Pyruvate", color: "#E67E22", pos: "-2.8 0.5 -3" },
+          { id: 'r2', type: 'box', text: "🧪 CoA", color: "#95A5A6", pos: "2.8 0.5 -3" }
         ],
         products: [
-          { id: 'p1', type: 'box', text: "⚗️ 2 Acetyl-CoA", color: "#E74C3C", pos: "-2.0 0.2 -3" },
-          { id: 'p2', type: 'cone', text: "💨 2 CO2", color: "#7F8C8D", pos: "0 1.8 -3" },
-          { id: 'p3', type: 'box', text: "🧬 2 NADH", color: "#9B59B6", pos: "2.0 0.2 -3" }
+          { id: 'p1', type: 'box', text: "⚗️ Acetyl-CoA", color: "#E74C3C", pos: "-2.0 0.2 -3" },
+          { id: 'p2', type: 'cone', text: "💨 CO₂", color: "#7F8C8D", pos: "0 1.8 -3" },
+          { id: 'p3', type: 'box', text: "🧬 NADH", color: "#9B59B6", pos: "2.0 0.2 -3" }
         ],
-        successMsg: "🌬️ ปล่อย CO2! พร้อมเข้าสู่วัฏจักรเครบส์"
+        summary: { atp: 0, nadh: 2, fadh2: 0, co2: 2, h2o: 0 },
+        productDesc: "✅ ได้ Acetyl-CoA, ปล่อย CO₂, ได้ NADH"
       },
       {
         title: "🌀 3. วัฏจักรเครบส์ (Krebs Cycle)",
         desc: "รวม <b>Acetyl-CoA</b> กับ <b>Oxaloacetate</b>",
+        reactionDesc: "🌀 Acetyl-CoA + 3 NAD⁺ + FAD + GDP → 2 CO₂ + 3 NADH + FADH₂ + GTP",
         reactants: [
           { id: 'r1', type: 'box', text: "⚗️ Acetyl-CoA", color: "#E74C3C", pos: "-2.8 0.5 -3" },
           { id: 'r2', type: 'sphere', text: "🔄 Oxaloacetate", color: "#1ABC9C", pos: "2.8 0.5 -3" }
         ],
         products: [
-          { id: 'p1', type: 'cone', text: "💨 4 CO2", color: "#7F8C8D", pos: "-2.2 1.2 -3" },
-          { id: 'p2', type: 'box', text: "🧬 6 NADH\n2 FADH2", color: "#9B59B6", pos: "0 0 -3" },
-          { id: 'p3', type: 'cylinder', text: "⚡ 2 ATP", color: "#F1C40F", pos: "2.2 1.2 -3" }
+          { id: 'p1', type: 'cone', text: "💨 CO₂", color: "#7F8C8D", pos: "-2.2 1.2 -3" },
+          { id: 'p2', type: 'box', text: "🧬 NADH/FADH₂", color: "#9B59B6", pos: "0 0 -3" },
+          { id: 'p3', type: 'cylinder', text: "⚡ ATP", color: "#F1C40F", pos: "2.2 1.2 -3" }
         ],
-        successMsg: "⚡ สกัดอิเล็กตรอนมหาศาล!"
+        summary: { atp: 2, nadh: 6, fadh2: 2, co2: 4, h2o: 0 },
+        productDesc: "✅ ได้ NADH, FADH₂, ATP และปล่อย CO₂"
       },
       {
         title: "⚡ 4. ETC & ATP synthase",
-        desc: "ลาก <b>NADH/FADH2</b> ไปชน <b>Oxygen</b>!",
+        desc: "ลาก <b>NADH/FADH₂</b> ไปชน <b>O₂</b>!",
+        reactionDesc: "⚡ NADH + FADH₂ + O₂ → ATP + H₂O",
         reactants: [
-          { id: 'r1', type: 'box', text: "🧬 NADH/FADH2", color: "#9B59B6", pos: "-2.8 0.5 -3" },
-          { id: 'r2', type: 'sphere', text: "💨 O2", color: "#3498DB", pos: "2.8 0.5 -3" }
+          { id: 'r1', type: 'box', text: "🧬 NADH/FADH₂", color: "#9B59B6", pos: "-2.8 0.5 -3" },
+          { id: 'r2', type: 'sphere', text: "💨 O₂", color: "#3498DB", pos: "2.8 0.5 -3" }
         ],
         products: [
-          { id: 'p1', type: 'cylinder', text: "⚡ 32 ATP", color: "#F1C40F", pos: "-1.5 0.5 -3", scale: "1.6 1.6 1.6" },
-          { id: 'p2', type: 'sphere', text: "💧 H2O", color: "#3498DB", pos: "1.5 0.5 -3" }
+          { id: 'p1', type: 'cylinder', text: "⚡ 34 ATP", color: "#F1C40F", pos: "-1.5 0.5 -3", scale: "1.6 1.6 1.6" },
+          { id: 'p2', type: 'sphere', text: "💧 H₂O", color: "#3498DB", pos: "1.5 0.5 -3" }
         ],
-        successMsg: "🎉 สังเคราะห์ ATP ได้เต็มที่! พลังงานสูงสุด"
+        summary: { atp: 34, nadh: 0, fadh2: 0, co2: 0, h2o: 12 },
+        productDesc: "🎉 สร้าง ATP ~34 ตัว! ได้ H₂O"
       }
     ];
 
@@ -216,35 +280,82 @@
     // ตัวแปรหลัก
     // --------------------------------------------------------------
     let currentStage = 0;
-    let appState = "REACTANTS"; // REACTANTS, EXPLODING, PRODUCTS, TRANSITION, COMPLETE
+    let appState = "REACTANTS";
     let grabbableElements = [];
     let grabbedByHand = [null, null];
+    let totalATP = 0, totalNADH = 0, totalFADH2 = 0, totalCO2 = 0, totalH2O = 0;
 
-    // ตัวแปรสำหรับตรวจจับการปัด (Swipe)
-    let swipeHandX = null;          // ตำแหน่ง X ของมือล่าสุด
-    let swipeHandId = null;        // ID ของมือที่ใช้ปัด
-    let swipeThreshold = 1.2;      // ระยะที่ถือว่าปัด
-    let isSwiping = false;
+    // ตัวแปรสำหรับตรวจจับท่าทางปัดมือ (Swipe)
+    let swipeData = { 
+      handId: null, 
+      startX: null, 
+      startY: null,
+      isActive: false,
+      threshold: 1.5
+    };
+    let lastSwipeTime = 0;
+    const SWIPE_COOLDOWN = 1200;
 
+    // DOM
     const container = document.getElementById('objects-container');
     const titleEl = document.getElementById('stage-title');
     const descEl = document.getElementById('instruction');
     const explosionGroup = document.getElementById('explosion-group');
     const loadingEl = document.getElementById('loading');
     const progressBar = document.getElementById('progress-bar');
-    
+    const eventDesc = document.getElementById('event-description');
+    const etcAnimation = document.getElementById('etc-animation');
+    const gestureIndicator = document.getElementById('gesture-indicator');
+
+    // เสียง
     const sndSuck = document.getElementById('snd-suck');
     const sndBoom = document.getElementById('snd-boom');
     const sndSuccess = document.getElementById('snd-success');
     const sndAmbient = document.getElementById('snd-ambient');
     const sndSwipe = document.getElementById('snd-swipe');
 
-    // เปิดเสียงพื้นหลัง
-    sndAmbient.volume = 0.2;
+    sndAmbient.volume = 0.15;
     sndAmbient.play().catch(() => {});
 
     // --------------------------------------------------------------
-    // ฟังก์ชันสร้าง Progress Bar
+    // ฟังก์ชันแสดงท่าทาง
+    // --------------------------------------------------------------
+    function showGesture(text, type = 'next') {
+      gestureIndicator.textContent = text;
+      gestureIndicator.className = 'show ' + type;
+      clearTimeout(gestureIndicator._timeout);
+      gestureIndicator._timeout = setTimeout(() => {
+        gestureIndicator.classList.remove('show');
+      }, 800);
+    }
+
+    // --------------------------------------------------------------
+    // อัปเดตสรุป
+    // --------------------------------------------------------------
+    function updateSummary() {
+      document.getElementById('sum-atp').textContent = totalATP;
+      document.getElementById('sum-nadh').textContent = totalNADH;
+      document.getElementById('sum-fadh2').textContent = totalFADH2;
+      document.getElementById('sum-co2').textContent = totalCO2;
+      document.getElementById('sum-h2o').textContent = totalH2O;
+      const total = totalATP + (totalNADH * 2.5) + (totalFADH2 * 1.5);
+      document.getElementById('sum-total-atp').textContent = Math.round(total);
+    }
+
+    // --------------------------------------------------------------
+    // แสดงเหตุการณ์
+    // --------------------------------------------------------------
+    function showEvent(text, duration = 3000) {
+      eventDesc.innerHTML = text;
+      eventDesc.classList.add('show');
+      clearTimeout(eventDesc._timeout);
+      eventDesc._timeout = setTimeout(() => {
+        eventDesc.classList.remove('show');
+      }, duration);
+    }
+
+    // --------------------------------------------------------------
+    // Progress Bar
     // --------------------------------------------------------------
     function updateProgressBar() {
       progressBar.innerHTML = '';
@@ -259,41 +370,48 @@
     updateProgressBar();
 
     // --------------------------------------------------------------
-    // ฟังก์ชันสร้างวัตถุ 3D
+    // สร้างวัตถุ 3D
     // --------------------------------------------------------------
     function createEntity(data) {
       const el = document.createElement(`a-${data.type}`);
       el.setAttribute('id', data.id);
       el.setAttribute('position', data.pos);
       el.setAttribute('color', data.color);
-      el.setAttribute('material', `emissive: ${data.color}; emissiveIntensity: 0.3; metalness: 0.1; roughness: 0.4`);
+      el.setAttribute('material', `emissive: ${data.color}; emissiveIntensity: 0.4; metalness: 0.1; roughness: 0.3; transparent: true; opacity: 0.95`);
       if(data.scale) el.setAttribute('scale', data.scale);
       
-      // พื้นผิวเรืองแสง
-      const glow = document.createElement('a-ring');
-      glow.setAttribute('radius-inner', '0.6');
-      glow.setAttribute('radius-outer', '0.8');
-      glow.setAttribute('color', data.color);
-      glow.setAttribute('material', `emissive: ${data.color}; transparent: true; opacity: 0.15; side: double`);
-      glow.setAttribute('position', '0 0 0');
-      glow.setAttribute('rotation', '-90 0 0');
-      el.appendChild(glow);
+      const ring = document.createElement('a-ring');
+      ring.setAttribute('radius-inner', '0.8');
+      ring.setAttribute('radius-outer', '1.0');
+      ring.setAttribute('color', data.color);
+      ring.setAttribute('material', `emissive: ${data.color}; transparent: true; opacity: 0.1; side: double`);
+      ring.setAttribute('position', '0 0 0');
+      ring.setAttribute('rotation', '-90 0 0');
+      el.appendChild(ring);
       
-      // ข้อความ
+      const ring2 = document.createElement('a-ring');
+      ring2.setAttribute('radius-inner', '0.6');
+      ring2.setAttribute('radius-outer', '0.8');
+      ring2.setAttribute('color', data.color);
+      ring2.setAttribute('material', `emissive: ${data.color}; transparent: true; opacity: 0.08; side: double`);
+      ring2.setAttribute('position', '0 0 0');
+      ring2.setAttribute('rotation', '0 90 0');
+      el.appendChild(ring2);
+      
       const text = document.createElement('a-text');
       text.setAttribute('value', data.text);
-      text.setAttribute('position', "0 1.3 0");
+      text.setAttribute('position', "0 1.4 0");
       text.setAttribute('align', "center");
-      text.setAttribute('scale', "1.8 1.8 1.8");
+      text.setAttribute('scale', "2.0 2.0 2.0");
       text.setAttribute('color', "#FFFFFF");
       text.setAttribute('font', "mozillavr");
       text.setAttribute('shader', "flat");
+      text.setAttribute('lines', "2");
       el.appendChild(text);
       
-      // อนิเมชันลอย
-      const yOffset = parseFloat(data.pos.split(' ')[1]) + 0.4;
+      const yOffset = parseFloat(data.pos.split(' ')[1]) + 0.5;
       el.setAttribute('animation__hover', `property: position; dir: alternate; dur: ${1800 + Math.random()*1200}; easing: easeInOutSine; loop: true; to: ${data.pos.replace('0.5', yOffset.toFixed(1))}`);
-      el.setAttribute('animation__spin', `property: rotation; dir: alternate; dur: 6000; easing: linear; loop: true; to: 0 360 0`);
+      el.setAttribute('animation__spin', `property: rotation; dir: alternate; dur: 8000; easing: linear; loop: true; to: 0 360 0`);
       
       return el;
     }
@@ -308,7 +426,9 @@
         container.innerHTML = '';
         grabbableElements = [];
         appState = "COMPLETE";
+        etcAnimation.setAttribute('visible', 'false');
         updateProgressBar();
+        showEvent("🎊 ครบทุกกระบวนการ! คุณเก่งมาก!", 5000);
         return;
       }
 
@@ -316,10 +436,11 @@
       grabbableElements = [];
       grabbedByHand = [null, null];
       appState = "REACTANTS";
+      etcAnimation.setAttribute('visible', 'false');
 
       const data = stagesData[index];
       titleEl.innerText = data.title;
-      descEl.innerHTML = data.desc + ' <span id="gesture-hint">👋 ปัดมือซ้าย-ขวาเพื่อเลื่อนด่าน</span>';
+      descEl.innerHTML = data.desc;
       descEl.style.background = "rgba(0, 0, 0, 0.2)";
       descEl.style.color = "#f0f0ff";
 
@@ -329,33 +450,149 @@
         grabbableElements.push(el);
       });
 
-      // อัปเดต Progress Bar
+      if (index === 3) {
+        etcAnimation.setAttribute('visible', 'true');
+        startETCAnimation();
+      }
+
       updateProgressBar();
+      showEvent(`📖 ${data.reactionDesc}`, 5000);
     }
 
-    loadStage(0);
+    // --------------------------------------------------------------
+    // อนิเมชัน ETC
+    // --------------------------------------------------------------
+    function startETCAnimation() {
+      const electron = document.getElementById('etc-electron');
+      if (!electron) return;
+      
+      const positions = ['-2.5 0.8 0', '-1.5 0.8 0', '-0.5 0.8 0', '0.5 0.8 0', '1.5 0.8 0', '2.5 0.8 0'];
+      let step = 0;
+      
+      function moveElectron() {
+        if (appState === "COMPLETE" || appState === "TRANSITION") return;
+        if (!electron) return;
+        
+        electron.setAttribute('position', positions[step % positions.length]);
+        const colors = ['#FFD700', '#FFA500', '#FF6B6B', '#FF6B6B', '#FFA500', '#FFD700'];
+        electron.setAttribute('color', colors[step % colors.length]);
+        electron.setAttribute('material', `emissive: ${colors[step % colors.length]}; emissiveIntensity: 3`);
+        
+        if (step % 2 === 0) {
+          const boxId = `etc-box${(step % 5) + 1}`;
+          const box = document.getElementById(boxId);
+          if (box) {
+            box.setAttribute('material', `emissive: #FFFFFF; emissiveIntensity: 2`);
+            setTimeout(() => {
+              box.setAttribute('material', `emissive: ${box.getAttribute('color')}; emissiveIntensity: 0.3`);
+            }, 300);
+          }
+        }
+        step++;
+        setTimeout(moveElectron, 700);
+      }
+      setTimeout(moveElectron, 1000);
+    }
 
     // --------------------------------------------------------------
-    // ฟังก์ชันเลื่อนไปด่านถัดไป (ใช้กับการปัดมือ)
+    // ตรวจจับท่าทางปัดมือ (Swipe Gesture)
+    // --------------------------------------------------------------
+    function detectSwipe(handId, x, y, isPinching) {
+      const now = Date.now();
+      
+      // ถ้าเพิ่งปัดไปไม่นาน ให้ cooldown
+      if (now - lastSwipeTime < SWIPE_COOLDOWN) return;
+      
+      // ต้องไม่กำลังจับวัตถุ
+      if (grabbedByHand[handId] !== null) return;
+      
+      // ต้องอยู่ในสถานะ PRODUCTS เท่านั้น
+      if (appState !== "PRODUCTS") return;
+      
+      if (!swipeData.isActive) {
+        // เริ่มตรวจจับ
+        swipeData.isActive = true;
+        swipeData.handId = handId;
+        swipeData.startX = x;
+        swipeData.startY = y;
+        return;
+      }
+      
+      // ถ้าเป็นมือคนละอัน ให้รีเซ็ต
+      if (swipeData.handId !== handId) {
+        swipeData.isActive = false;
+        swipeData.handId = null;
+        return;
+      }
+      
+      // คำนวณระยะทาง
+      const dx = x - swipeData.startX;
+      const dy = y - swipeData.startY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      
+      // ถ้าระยะทางถึงเกณฑ์
+      if (dist > swipeData.threshold) {
+        // ตรวจสอบทิศทาง (ให้ความสำคัญกับแนวนอนมากกว่า)
+        if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+          // ปัดแนวนอน
+          if (dx > 0) {
+            // ปัดขวา -> ไปด่านถัดไป
+            showGesture('▶ ถัดไป!', 'next');
+            sndSwipe.currentTime = 0; sndSwipe.volume = 0.5; sndSwipe.play();
+            lastSwipeTime = now;
+            goToNextStage();
+          } else {
+            // ปัดซ้าย -> กลับด่านก่อนหน้า
+            if (currentStage > 0) {
+              showGesture('◀ กลับ!', 'prev');
+              sndSwipe.currentTime = 0; sndSwipe.volume = 0.5; sndSwipe.play();
+              lastSwipeTime = now;
+              goToPrevStage();
+            } else {
+              showGesture('⚠️ อยู่ด่านแรกแล้ว', 'prev');
+            }
+          }
+        } else if (Math.abs(dy) > Math.abs(dx) * 1.5) {
+          // ปัดแนวตั้ง (ไม่ต้องทำอะไร)
+          showGesture('↕ ปัดซ้าย/ขวา', 'next');
+        }
+        
+        // รีเซ็ตการตรวจจับ
+        swipeData.isActive = false;
+        swipeData.handId = null;
+        swipeData.startX = null;
+        swipeData.startY = null;
+      }
+      
+      // ถ้าระยะทางไกลเกินไป (ยกมือออก) ให้รีเซ็ต
+      if (dist > 5) {
+        swipeData.isActive = false;
+        swipeData.handId = null;
+        swipeData.startX = null;
+        swipeData.startY = null;
+      }
+    }
+
+    // --------------------------------------------------------------
+    // ไป/กลับ ด่าน
     // --------------------------------------------------------------
     function goToNextStage() {
       if (appState === "TRANSITION" || appState === "COMPLETE") return;
       if (currentStage >= stagesData.length - 1) {
-        // ถ้าอยู่ด่านสุดท้าย ให้จบ
         appState = "COMPLETE";
         titleEl.innerText = "🏆 เรียนจบแล้ว!";
         descEl.innerHTML = "🎊 คุณเก่งมาก! ครบทุกกระบวนการแล้ว 🎊";
+        etcAnimation.setAttribute('visible', 'false');
+        showEvent("🎉 จบกระบวนการ!", 3000);
         return;
       }
 
-      // หยุดการทำงานทั้งหมด
       appState = "TRANSITION";
       grabbedByHand = [null, null];
       
-      descEl.innerHTML = "⏳ กำลังเปลี่ยนด่าน... 👋 ปัดเพื่อไปต่อ";
+      descEl.innerHTML = "⏳ กำลังเปลี่ยนด่าน...";
       descEl.style.background = "rgba(0,0,0,0.3)";
       
-      // ลบวัตถุเก่าอย่างสวยงาม
       grabbableElements.forEach(el => {
         if (el) {
           el.setAttribute('animation__fadeout', 'property: scale; to: 0 0 0; dur: 600; easing: easeInBack');
@@ -365,9 +602,119 @@
       setTimeout(() => {
         currentStage++;
         loadStage(currentStage);
-        // เล่นเสียงปัด
-        sndSwipe.currentTime = 0; sndSwipe.volume = 0.5; sndSwipe.play();
       }, 700);
+    }
+
+    function goToPrevStage() {
+      if (appState === "TRANSITION" || appState === "COMPLETE") return;
+      if (currentStage <= 0) return;
+
+      appState = "TRANSITION";
+      grabbedByHand = [null, null];
+      
+      grabbableElements.forEach(el => {
+        if (el) {
+          el.setAttribute('animation__fadeout', 'property: scale; to: 0 0 0; dur: 600; easing: easeInBack');
+        }
+      });
+
+      setTimeout(() => {
+        const data = stagesData[currentStage];
+        totalATP -= data.summary.atp;
+        totalNADH -= data.summary.nadh;
+        totalFADH2 -= data.summary.fadh2;
+        totalCO2 -= data.summary.co2;
+        totalH2O -= data.summary.h2o;
+        updateSummary();
+        
+        currentStage--;
+        loadStage(currentStage);
+      }, 700);
+    }
+
+    // --------------------------------------------------------------
+    // เอฟเฟกต์ระเบิด
+    // --------------------------------------------------------------
+    function triggerExplosion(pos1, pos2) {
+      if (appState !== "REACTANTS") return;
+      appState = "EXPLODING";
+      grabbedByHand = [null, null];
+      sndSuck.volume = 0.6; sndSuck.currentTime = 0; sndSuck.play();
+      
+      const midX = (pos1.x + pos2.x) / 2;
+      const midY = (pos1.y + pos2.y) / 2;
+
+      grabbableElements.forEach(el => {
+        el.setAttribute('animation__spin', 'property: rotation; to: 0 1080 0; dur: 700');
+        el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 700');
+      });
+
+      const data = stagesData[currentStage];
+      showEvent(`⚗️ ${data.reactionDesc}`, 4000);
+
+      setTimeout(() => {
+        sndBoom.volume = 0.8; sndBoom.currentTime = 0; sndBoom.play();
+        container.innerHTML = ''; 
+        
+        explosionGroup.setAttribute('position', `${midX} ${midY} -3`);
+        explosionGroup.setAttribute('visible', 'true');
+        
+        document.getElementById('boom-core').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 30 30 30; dur: 700; easing: easeOutQuad');
+        document.getElementById('boom-core').setAttribute('animation__fade', 'property: material.opacity; from: 1; to: 0; dur: 700; easing: easeOutQuad');
+        document.getElementById('boom-shockwave1').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 40 40 40; dur: 800; easing: easeOutQuad');
+        document.getElementById('boom-shockwave2').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 40 40 40; dur: 800; easing: easeOutQuad');
+        document.getElementById('boom-shockwave3').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 40 40 40; dur: 800; easing: easeOutQuad');
+        document.getElementById('boom-shockwave4').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 40 40 40; dur: 800; easing: easeOutQuad');
+        
+        setTimeout(() => {
+          explosionGroup.setAttribute('visible', 'false');
+          spawnProducts();
+        }, 750);
+      }, 700);
+    }
+
+    // --------------------------------------------------------------
+    // แสดงผลิตภัณฑ์
+    // --------------------------------------------------------------
+    function spawnProducts() {
+      sndSuccess.volume = 0.7; sndSuccess.currentTime = 0; sndSuccess.play();
+      appState = "PRODUCTS";
+      grabbableElements = [];
+
+      const data = stagesData[currentStage];
+      
+      totalATP += data.summary.atp;
+      totalNADH += data.summary.nadh;
+      totalFADH2 += data.summary.fadh2;
+      totalCO2 += data.summary.co2;
+      totalH2O += data.summary.h2o;
+      updateSummary();
+
+      descEl.innerHTML = `✅ ${data.productDesc}`;
+      descEl.style.background = "rgba(46, 204, 113, 0.2)";
+      descEl.style.color = "#ccffdd";
+      descEl.style.border = "1px solid #2ECC71";
+
+      data.products.forEach(p => {
+        const el = createEntity(p);
+        el.setAttribute('scale', '0 0 0');
+        container.appendChild(el);
+        grabbableElements.push(el);
+        el.setAttribute('animation__pop', 'property: scale; to: 1 1 1; dur: 900; easing: easeOutElastic');
+      });
+
+      showEvent(`🎯 ${data.productDesc}`, 4000);
+      
+      // แสดงคำแนะนำการปัดมือ
+      setTimeout(() => {
+        if (appState === "PRODUCTS") {
+          if (currentStage < stagesData.length - 1) {
+            showEvent('👋 ปัดมือขวาเพื่อไปด่านถัดไป', 2500);
+          } else {
+            showEvent('🎉 ด่านสุดท้าย! ปัดมือขวาเพื่อจบ', 2500);
+          }
+        }
+      }, 1500);
     }
 
     // --------------------------------------------------------------
@@ -384,7 +731,6 @@
     hands.onResults((results) => {
       loadingEl.style.display = 'none';
 
-      // อัปเดตนิ้วมือ
       const cursors = [
         {idx: document.getElementById('hand1-index'), thm: document.getElementById('hand1-thumb'), ring: document.getElementById('ring1')},
         {idx: document.getElementById('hand2-index'), thm: document.getElementById('hand2-thumb'), ring: document.getElementById('ring2')}
@@ -396,9 +742,6 @@
       });
 
       if (results.multiHandLandmarks) {
-        // เก็บข้อมูลมือเพื่อตรวจจับการปัด
-        let handPositions = [];
-
         results.multiHandLandmarks.forEach((landmarks, index) => {
           if(index > 1) return;
           const idxPt = landmarks[8]; 
@@ -408,7 +751,6 @@
           const thmX = -(thmPt.x - 0.5) * 14; 
           const thmY = -(thmPt.y - 0.5) * 9;
 
-          // อัปเดตตำแหน่งนิ้ว
           cursors[index].idx.setAttribute('position', `${idxX} ${idxY} -3`);
           cursors[index].thm.setAttribute('position', `${thmX} ${thmY} -3`);
           cursors[index].idx.setAttribute('visible', 'true');
@@ -416,17 +758,19 @@
           cursors[index].ring.setAttribute('position', `${(idxX+thmX)/2} ${(idxY+thmY)/2} -3`);
           cursors[index].ring.setAttribute('visible', 'true');
 
-          // เก็บตำแหน่งมือ (ใช้ mid point)
           const midX = (idxX + thmX) / 2;
           const midY = (idxY + thmY) / 2;
-          handPositions.push({ id: index, x: midX, y: midY });
-
+          const midPos = new THREE.Vector3(midX, midY, -3);
+          
           const pinchDist = Math.sqrt(Math.pow(idxX - thmX, 2) + Math.pow(idxY - thmY, 2));
           const isPinching = pinchDist < 0.9;
           
-          // ----- ระบบหยิบจับ (เฉพาะ REACTANTS และ PRODUCTS) -----
+          // --- ตรวจจับท่าทางปัดมือ ---
+          detectSwipe(index, midX, midY, isPinching);
+          
+          // --- จัดการการหยิบจับวัตถุ ---
           if (appState === "REACTANTS" || appState === "PRODUCTS") {
-            const handData = { isPinching, pos3D: new THREE.Vector3(midX, midY, -3), id: index };
+            const handData = { isPinching, pos3D: midPos, id: index };
             
             if (handData.isPinching) {
               if (!grabbedByHand[handData.id]) {
@@ -444,7 +788,7 @@
                   grabbedByHand[handData.id] = closestEl.id;
                   closestEl.removeAttribute('animation__hover');
                   closestEl.setAttribute('scale', '1.3 1.3 1.3');
-                  sndSuck.currentTime = 0; sndSuck.volume = 0.3; sndSuck.play();
+                  sndSuck.currentTime = 0; sndSuck.volume = 0.2; sndSuck.play();
                 }
               }
               if (grabbedByHand[handData.id]) {
@@ -461,57 +805,7 @@
           }
         });
 
-        // ----- ตรวจจับการปัด (Swipe) จากมือข้างที่ว่าง (ไม่จับวัตถุ) -----
-        if (appState !== "TRANSITION" && appState !== "COMPLETE") {
-          // หามือที่ว่าง (ไม่ได้จับวัตถุ)
-          let freeHand = null;
-          for (let h of handPositions) {
-            // ตรวจสอบว่ามือนี้กำลังจับวัตถุอยู่หรือไม่
-            const isGrabbing = grabbedByHand[h.id] !== null;
-            if (!isGrabbing) {
-              freeHand = h;
-              break;
-            }
-          }
-
-          // ถ้ามีมือว่าง ให้ตรวจจับการปัด
-          if (freeHand) {
-            const currentX = freeHand.x;
-            const handId = freeHand.id;
-
-            if (swipeHandId === null) {
-              // เริ่มต้นการปัด
-              swipeHandId = handId;
-              swipeHandX = currentX;
-              isSwiping = false;
-            } else if (swipeHandId === handId) {
-              // มือเดียวกัน วัดการเคลื่อนที่
-              const deltaX = currentX - swipeHandX;
-              
-              if (Math.abs(deltaX) > swipeThreshold && !isSwiping) {
-                // ตรวจจับการปัดสำเร็จ
-                isSwiping = true;
-                // ตรวจสอบทิศทาง: ถ้าปัดไปทางขวา (ค่า +) ให้ไปด่านถัดไป
-                if (deltaX > 0) {
-                  goToNextStage();
-                }
-                // ปัดซ้าย (ค่า -) ไม่ต้องทำอะไร หรือจะย้อนกลับก็ได้ แต่เราทำแค่ไปข้างหน้า
-              }
-            }
-          } else {
-            // ไม่มีมือว่าง รีเซ็ตการปัด
-            swipeHandId = null;
-            swipeHandX = null;
-            isSwiping = false;
-          }
-        } else {
-          // ถ้าอยู่ในสถานะเปลี่ยนด่าน หรือจบแล้ว รีเซ็ตการปัด
-          swipeHandId = null;
-          swipeHandX = null;
-          isSwiping = false;
-        }
-
-        // ----- ตรวจจับการชนกัน (เฉพาะ REACTANTS) -----
+        // --- ตรวจจับการชนกัน ---
         if (appState === "REACTANTS" && grabbableElements.length === 2) {
           const el1 = grabbableElements[0];
           const el2 = grabbableElements[1];
@@ -526,72 +820,6 @@
     });
 
     // --------------------------------------------------------------
-    // เอฟเฟกต์ระเบิด
-    // --------------------------------------------------------------
-    function triggerExplosion(pos1, pos2) {
-      if (appState !== "REACTANTS") return;
-      appState = "EXPLODING";
-      grabbedByHand = [null, null];
-      sndSuck.volume = 0.8; sndSuck.currentTime = 0; sndSuck.play();
-      
-      const midX = (pos1.x + pos2.x) / 2;
-      const midY = (pos1.y + pos2.y) / 2;
-
-      grabbableElements.forEach(el => {
-        el.setAttribute('animation__spin', 'property: rotation; to: 0 1080 0; dur: 700');
-        el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 700');
-      });
-
-      setTimeout(() => {
-        sndBoom.volume = 0.9; sndBoom.currentTime = 0; sndBoom.play();
-        container.innerHTML = ''; 
-        
-        explosionGroup.setAttribute('position', `${midX} ${midY} -3`);
-        explosionGroup.setAttribute('visible', 'true');
-        
-        document.getElementById('boom-core').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 25 25 25; dur: 600; easing: easeOutQuad');
-        document.getElementById('boom-core').setAttribute('animation__fade', 'property: material.opacity; from: 1; to: 0; dur: 600; easing: easeOutQuad');
-        document.getElementById('boom-shockwave1').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 35 35 35; dur: 700; easing: easeOutQuad');
-        document.getElementById('boom-shockwave2').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 35 35 35; dur: 700; easing: easeOutQuad');
-        document.getElementById('boom-shockwave3').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 35 35 35; dur: 700; easing: easeOutQuad');
-        
-        setTimeout(() => {
-          explosionGroup.setAttribute('visible', 'false');
-          spawnProducts();
-        }, 650);
-      }, 700);
-    }
-
-    // --------------------------------------------------------------
-    // แสดงผลิตภัณฑ์
-    // --------------------------------------------------------------
-    function spawnProducts() {
-      sndSuccess.volume = 0.8; sndSuccess.currentTime = 0; sndSuccess.play();
-      appState = "PRODUCTS";
-      grabbableElements = [];
-
-      const data = stagesData[currentStage];
-      descEl.innerHTML = data.successMsg + ' 👋 ปัดมือเพื่อไปด่านถัดไป';
-      descEl.style.background = "rgba(46, 204, 113, 0.25)";
-      descEl.style.color = "#ccffdd";
-      descEl.style.border = "1px solid #2ECC71";
-
-      data.products.forEach(p => {
-        const el = createEntity(p);
-        el.setAttribute('scale', '0 0 0');
-        container.appendChild(el);
-        grabbableElements.push(el);
-        el.setAttribute('animation__pop', 'property: scale; to: 1 1 1; dur: 900; easing: easeOutElastic');
-      });
-
-      // ไม่มี timer รออัตโนมัติอีกต่อไป ใช้การปัดมือเท่านั้น
-      // รีเซ็ตการปัดเพื่อให้พร้อมตรวจจับใหม่
-      swipeHandId = null;
-      swipeHandX = null;
-      isSwiping = false;
-    }
-
-    // --------------------------------------------------------------
     // เริ่มกล้อง
     // --------------------------------------------------------------
     const videoElement = document.getElementById('webcam');
@@ -604,7 +832,10 @@
     });
     camera.start();
 
-    console.log("🌍 AR Cellular Respiration - ควบคุมด้วยการปัดมือ!");
+    // โหลดด่านแรก
+    loadStage(0);
+
+    console.log("🌍 AR Cellular Respiration - ควบคุมด้วยท่าทางปัดมือ!");
   </script>
 </body>
 </html>
