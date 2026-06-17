@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ultimate AR Cellular Respiration</title>
+  
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; background-color: black; font-family: sans-serif; }
+    #webcam { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -1; transform: scaleX(-1); }
+    #aframe-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    
+    #ui-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; z-index: 10; text-align: center; pointer-events: none; }
+    #stage-title { background: rgba(0, 0, 0, 0.8); color: #00FFCC; padding: 10px; font-size: 24px; border-radius: 10px 10px 0 0; font-weight: bold; text-shadow: 0 0 10px #00FFCC;}
+    #instruction { background: rgba(0, 0, 0, 0.7); color: white; padding: 15px; font-size: 18px; border-radius: 0 0 10px 10px; transition: all 0.5s; }
+    
+    #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; z-index: 20; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; }
+  </style>
+</head>
+
+<body>
+  <audio id="snd-suck" src="https://actions.google.com/sounds/v1/science_fiction/sci_fi_hover_craft_pass_by.ogg" preload="auto"></audio>
+  <audio id="snd-boom" src="https://actions.google.com/sounds/v1/science_fiction/force_field_explosion.ogg" preload="auto"></audio>
+  <audio id="snd-success" src="https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" preload="auto"></audio>
+
+  <div id="loading">✨ กำลังร่ายเวทมนตร์ (โหลด AI ตรวจจับ 2 มือ)...</div>
+  
+  <div id="ui-container">
+    <div id="stage-title">เตรียมพร้อม...</div>
+    <div id="instruction">กำลังโหลดข้อมูล...</div>
+  </div>
+
+  <video id="webcam" autoplay playsinline></video>
+
+  <a-scene id="aframe-canvas" renderer="alpha: true" vr-mode-ui="enabled: false">
+    <a-entity camera position="0 0 5"></a-entity>
+
+    <a-sphere id="hand1-index" radius="0.1" color="#FF3366" material="emissive: #FF3366"></a-sphere>
+    <a-sphere id="hand1-thumb" radius="0.1" color="#FF3366" material="emissive: #FF3366"></a-sphere>
+    <a-sphere id="hand2-index" radius="0.1" color="#00FFCC" material="emissive: #00FFCC"></a-sphere>
+    <a-sphere id="hand2-thumb" radius="0.1" color="#00FFCC" material="emissive: #00FFCC"></a-sphere>
+
+    <a-entity id="explosion-group" position="0 0 -3" visible="false">
+      <a-sphere id="boom-core" radius="0.1" color="#FFFFFF" material="emissive: #FFFFFF; emissiveIntensity: 3"></a-sphere>
+      <a-ring id="boom-shockwave1" radius-inner="0.1" radius-outer="0.2" color="#F1C40F" material="emissive: #F1C40F; side: double"></a-ring>
+      <a-ring id="boom-shockwave2" radius-inner="0.1" radius-outer="0.3" color="#3498DB" material="emissive: #3498DB; side: double" rotation="90 0 0"></a-ring>
+    </a-entity>
+
+    <a-entity id="objects-container"></a-entity>
+
+  </a-scene>
+
+  <script>
+    // ฐานข้อมูลเนื้อหา
+    const stagesData = [
+      {
+        title: "1. ไกลโคไลซิส (Glycolysis)",
+        desc: "ลาก <b>Glucose</b> และ <b>2 ATP</b> มาชนกัน!",
+        reactants: [
+          { id: 'r1', type: 'box', text: "Glucose", color: "#2ECC71", pos: "-2.5 0.5 -3" },
+          { id: 'r2', type: 'cylinder', text: "2 ATP\n(ลงทุน)", color: "#F1C40F", pos: "2.5 0.5 -3" }
+        ],
+        products: [
+          { id: 'p1', type: 'sphere', text: "2 Pyruvate", color: "#E67E22", pos: "-1.5 0.5 -3" },
+          { id: 'p2', type: 'cylinder', text: "4 ATP\n(กำไร)", color: "#F1C40F", pos: "0 1.5 -3" },
+          { id: 'p3', type: 'box', text: "2 NADH", color: "#9B59B6", pos: "1.5 0.5 -3" }
+        ],
+        successMsg: "✨ สำเร็จ! ลองใช้มือจับผลิตภัณฑ์เล่นดู (รอ 6 วินาทีเพื่อไปด่านต่อไป)"
+      },
+      {
+        title: "2. การสร้าง Acetyl-CoA",
+        desc: "ลาก <b>2 Pyruvate</b> ชนกับ <b>Coenzyme A</b>",
+        reactants: [
+          { id: 'r1', type: 'sphere', text: "2 Pyruvate", color: "#E67E22", pos: "-2.5 0.5 -3" },
+          { id: 'r2', type: 'box', text: "2 CoA", color: "#95A5A6", pos: "2.5 0.5 -3" }
+        ],
+        products: [
+          { id: 'p1', type: 'box', text: "2 Acetyl-CoA", color: "#E74C3C", pos: "-1.5 0.5 -3" },
+          { id: 'p2', type: 'cone', text: "2 CO2", color: "#7F8C8D", pos: "0 1.5 -3" },
+          { id: 'p3', type: 'box', text: "2 NADH", color: "#9B59B6", pos: "1.5 0.5 -3" }
+        ],
+        successMsg: "✨ ปล่อยคาร์บอน! เตรียมเข้าวัฏจักรเครบส์ (รอ 6 วินาที...)"
+      },
+      {
+        title: "3. วัฏจักรเครบส์ (Krebs Cycle)",
+        desc: "รวม <b>Acetyl-CoA</b> กับ <b>Oxaloacetate</b>",
+        reactants: [
+          { id: 'r1', type: 'box', text: "2 Acetyl-CoA", color: "#E74C3C", pos: "-2.5 0.5 -3" },
+          { id: 'r2', type: 'sphere', text: "Oxaloacetate", color: "#1ABC9C", pos: "2.5 0.5 -3" }
+        ],
+        products: [
+          { id: 'p1', type: 'cone', text: "4 CO2", color: "#7F8C8D", pos: "-2 1 -3" },
+          { id: 'p2', type: 'box', text: "6 NADH\n2 FADH2", color: "#9B59B6", pos: "0 0 -3" },
+          { id: 'p3', type: 'cylinder', text: "2 ATP", color: "#F1C40F", pos: "2 1 -3" }
+        ],
+        successMsg: "✨ สกัดอิเล็กตรอนได้มหาศาล! (รอ 6 วินาที...)"
+      },
+      {
+        title: "4. การถ่ายทอดอิเล็กตรอน (ETC)",
+        desc: "ลาก <b>NADH/FADH2</b> ไปหา <b>Oxygen</b>!",
+        reactants: [
+          { id: 'r1', type: 'box', text: "NADH/FADH2", color: "#9B59B6", pos: "-2.5 0.5 -3" },
+          { id: 'r2', type: 'sphere', text: "Oxygen (O2)", color: "#3498DB", pos: "2.5 0.5 -3" }
+        ],
+        products: [
+          { id: 'p1', type: 'cylinder', text: "30-32 ATP !!", color: "#F1C40F", pos: "-1 1 -3", scale: "1.5 1.5 1.5" },
+          { id: 'p2', type: 'sphere', text: "H2O (น้ำ)", color: "#3498DB", pos: "1.5 0 -3" }
+        ],
+        successMsg: "🎉 สมบูรณ์! ได้พลังงานมหาศาลไปใช้แล้ว (จบกระบวนการ)"
+      }
+    ];
+
+    let currentStage = 0;
+    let appState = "REACTANTS"; // REACTANTS, EXPLODING, PRODUCTS
+    let grabbableElements = [];
+    let grabbedByHand = [null, null]; // เก็บ id ของวัตถุที่มือ 0 และมือ 1 จับอยู่
+
+    const container = document.getElementById('objects-container');
+    const titleEl = document.getElementById('stage-title');
+    const descEl = document.getElementById('instruction');
+    const explosionGroup = document.getElementById('explosion-group');
+    
+    const sndSuck = document.getElementById('snd-suck');
+    const sndBoom = document.getElementById('snd-boom');
+    const sndSuccess = document.getElementById('snd-success');
+
+    // ฟังก์ชันสร้างวัตถุ 3 มิติ
+    function createEntity(data) {
+      const el = document.createElement(`a-${data.type}`);
+      el.setAttribute('id', data.id);
+      el.setAttribute('position', data.pos);
+      el.setAttribute('color', data.color);
+      el.setAttribute('material', `emissive: ${data.color}; emissiveIntensity: 0.2`);
+      if(data.scale) el.setAttribute('scale', data.scale);
+      
+      const text = document.createElement('a-text');
+      text.setAttribute('value', data.text);
+      text.setAttribute('position', "0 1.2 0");
+      text.setAttribute('align', "center");
+      text.setAttribute('scale', "1.5 1.5 1.5");
+      text.setAttribute('color', "#FFF");
+      el.appendChild(text);
+      
+      // อนิเมชันลอยไปมา
+      el.setAttribute('animation__hover', `property: position; dir: alternate; dur: ${1500 + Math.random()*1000}; easing: easeInOutSine; loop: true; to: ${data.pos.replace('0.5', '0.8')}`);
+      return el;
+    }
+
+    // ฟังก์ชันโหลดด่าน
+    function loadStage(index) {
+      if(index >= stagesData.length) return; // จบเกม
+
+      // ล้างของเก่า
+      container.innerHTML = '';
+      grabbableElements = [];
+      grabbedByHand = [null, null];
+      appState = "REACTANTS";
+
+      const data = stagesData[index];
+      titleEl.innerText = data.title;
+      descEl.innerHTML = data.desc;
+      descEl.style.backgroundColor = "rgba(0,0,0,0.7)";
+      descEl.style.color = "white";
+
+      // สร้าง Reactants
+      data.reactants.forEach(r => {
+        const el = createEntity(r);
+        container.appendChild(el);
+        grabbableElements.push(el);
+      });
+    }
+
+    // เรียกด่านแรก
+    loadStage(0);
+
+    // ตั้งค่า AI จับมือ
+    const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+
+    hands.onResults((results) => {
+      document.getElementById('loading').style.display = 'none';
+
+      // อัปเดตตำแหน่งมือ
+      const cursors = [
+        {idx: document.getElementById('hand1-index'), thm: document.getElementById('hand1-thumb')},
+        {idx: document.getElementById('hand2-index'), thm: document.getElementById('hand2-thumb')}
+      ];
+      cursors.forEach(c => { c.idx.setAttribute('visible', 'false'); c.thm.setAttribute('visible', 'false'); });
+
+      if (results.multiHandLandmarks) {
+        let handsData = [];
+
+        results.multiHandLandmarks.forEach((landmarks, index) => {
+          if(index > 1) return;
+          const idxPt = landmarks[8]; const thmPt = landmarks[4];
+          const idxX = -(idxPt.x - 0.5) * 12; const idxY = -(idxPt.y - 0.5) * 8;
+          const thmX = -(thmPt.x - 0.5) * 12; const thmY = -(thmPt.y - 0.5) * 8;
+
+          cursors[index].idx.setAttribute('position', `${idxX} ${idxY} -3`);
+          cursors[index].thm.setAttribute('position', `${thmX} ${thmY} -3`);
+          cursors[index].idx.setAttribute('visible', 'true');
+          cursors[index].thm.setAttribute('visible', 'true');
+
+          const pinchDist = Math.sqrt(Math.pow(idxX - thmX, 2) + Math.pow(idxY - thmY, 2));
+          const isPinching = pinchDist < 0.8;
+          const midX = (idxX + thmX) / 2; const midY = (idxY + thmY) / 2;
+          
+          handsData.push({ isPinching, pos3D: new THREE.Vector3(midX, midY, -3), id: index });
+        });
+
+        // ระบบหยิบจับ (ทำงานได้ทั้งตอนเป็น Reactants และ Products)
+        if (appState === "REACTANTS" || appState === "PRODUCTS") {
+          handsData.forEach(hand => {
+            if (hand.isPinching) {
+              // ถ้ายังไม่ได้จับอะไร ให้หาวัตถุที่ใกล้สุด
+              if (!grabbedByHand[hand.id]) {
+                let closestEl = null; let minD = 1.5;
+                grabbableElements.forEach(el => {
+                  const d = hand.pos3D.distanceTo(el.object3D.position);
+                  // เช็คว่าวัตถุนี้ถูกมืออีกข้างจับอยู่หรือไม่
+                  const isGrabbedByOther = grabbedByHand.includes(el.id);
+                  if (d < minD && !isGrabbedByOther) { minD = d; closestEl = el; }
+                });
+                
+                if (closestEl) {
+                  grabbedByHand[hand.id] = closestEl.id;
+                  closestEl.removeAttribute('animation__hover'); // หยุดลอยตอนจับ
+                  closestEl.setAttribute('scale', '1.2 1.2 1.2'); // ขยายตอนจับ
+                }
+              }
+
+              // อัปเดตตำแหน่งวัตถุตามมือ
+              if (grabbedByHand[hand.id]) {
+                const el = document.getElementById(grabbedByHand[hand.id]);
+                if(el) el.setAttribute('position', `${hand.pos3D.x} ${hand.pos3D.y} -3`);
+              }
+            } else {
+              // ปล่อยมือ
+              if (grabbedByHand[hand.id]) {
+                const el = document.getElementById(grabbedByHand[hand.id]);
+                if(el) el.setAttribute('scale', '1 1 1');
+                grabbedByHand[hand.id] = null;
+              }
+            }
+          });
+        }
+
+        // เช็คการชนกันเฉพาะตอนเป็นสารตั้งต้น
+        if (appState === "REACTANTS" && grabbableElements.length === 2) {
+          const d = grabbableElements[0].object3D.position.distanceTo(grabbableElements[1].object3D.position);
+          if (d < 1.3) {
+            triggerExplosion(grabbableElements[0].object3D.position, grabbableElements[1].object3D.position);
+          }
+        }
+      }
+    });
+
+    function triggerExplosion(pos1, pos2) {
+      appState = "EXPLODING";
+      grabbedByHand = [null, null];
+      sndSuck.currentTime = 0; sndSuck.play(); // เสียงดูด
+      
+      const midX = (pos1.x + pos2.x) / 2;
+      const midY = (pos1.y + pos2.y) / 2;
+
+      // สารตั้งต้นหมุนและหดตัว
+      grabbableElements.forEach(el => {
+        el.setAttribute('animation__spin', 'property: rotation; to: 0 1080 0; dur: 800');
+        el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 800');
+      });
+
+      setTimeout(() => {
+        sndBoom.currentTime = 0; sndBoom.play(); // เสียงระเบิด
+        container.innerHTML = ''; // ลบสารตั้งต้น
+        
+        // แสดงระเบิด
+        explosionGroup.setAttribute('position', `${midX} ${midY} -3`);
+        explosionGroup.setAttribute('visible', 'true');
+        
+        document.getElementById('boom-core').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 20 20 20; dur: 500; easing: easeOutQuad');
+        document.getElementById('boom-core').setAttribute('animation__fade', 'property: material.opacity; from: 1; to: 0; dur: 500; easing: easeOutQuad');
+        document.getElementById('boom-shockwave1').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 30 30 30; dur: 600; easing: easeOutQuad');
+        document.getElementById('boom-shockwave2').setAttribute('animation__scale', 'property: scale; from: 1 1 1; to: 30 30 30; dur: 600; easing: easeOutQuad');
+
+        setTimeout(() => {
+          explosionGroup.setAttribute('visible', 'false');
+          spawnProducts();
+        }, 500);
+
+      }, 800);
+    }
+
+    function spawnProducts() {
+      sndSuccess.currentTime = 0; sndSuccess.play(); // เสียงวิ้งๆ สำเร็จ
+      appState = "PRODUCTS";
+      grabbableElements = [];
+
+      const data = stagesData[currentStage];
+      descEl.innerHTML = data.successMsg;
+      descEl.style.backgroundColor = "#2ECC71";
+      descEl.style.color = "black";
+
+      // สร้าง Products ให้หยิบเล่นได้
+      data.products.forEach(p => {
+        const el = createEntity(p);
+        el.setAttribute('scale', '0 0 0'); // เริ่มจาก 0
+        container.appendChild(el);
+        grabbableElements.push(el);
+        
+        // อนิเมชันเด้งปรากฏตัว
+        el.setAttribute('animation__pop', 'property: scale; to: 1 1 1; dur: 1000; easing: easeOutElastic');
+      });
+
+      // หน่วงเวลา 7 วินาที เพื่อให้ผู้เรียนจับเล่น ก่อนเปลี่ยนด่านอัตโนมัติ
+      if(currentStage < stagesData.length - 1) {
+        setTimeout(() => {
+          autoTransitionToNextStage();
+        }, 7000);
+      }
+    }
+
+    function autoTransitionToNextStage() {
+      appState = "TRANSITION";
+      grabbedByHand = [null, null];
+      
+      // เฟดข้อความและผลิตภัณฑ์
+      descEl.innerHTML = "กำลังเตรียมกระบวนการต่อไป...";
+      descEl.style.backgroundColor = "rgba(0,0,0,0.7)";
+      descEl.style.color = "white";
+
+      grabbableElements.forEach(el => {
+        el.setAttribute('animation__fadeout', 'property: scale; to: 0 0 0; dur: 1000; easing: easeInBack');
+      });
+
+      setTimeout(() => {
+        currentStage++;
+        loadStage(currentStage);
+      }, 1200);
+    }
+
+    const videoElement = document.getElementById('webcam');
+    const camera = new Camera(videoElement, {
+      onFrame: async () => { await hands.send({image: videoElement}); },
+      width: 1280, height: 720
+    });
+    camera.start();
+  </script>
+</body>
+</html>
